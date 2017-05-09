@@ -5,6 +5,13 @@ from lexer import lex
 from collections import Iterable
 from pprint import pprint
 
+def log(func):
+    def wrapped(*args):
+        print(f"in function: {func.__name__}")
+        func(*args)
+    return wrapped
+
+#  BaseParser {{{1 # 
 class BaseParser:
 
     def __init__(self, tokens):
@@ -17,17 +24,22 @@ class BaseParser:
         self.current, self.lookahead = self.lookahead, next(self.stream, None)
 
     def match(self, *ttype):
-        if self.lookahead.type in ttype:
+        if self.lookahead and self.lookahead.type in ttype:
             self._consume()
             return True
         else:
-            raise SyntaxError(f"expecting {ttype}; found {self.lookahead.type}")
+            msg = f"expecting {ttype}"
+            if self.lookahead:
+                msg = msg + f"; found {self.lookahead.type}"
+            raise SyntaxError(msg)
     
     def parse(self, string):
         self.stream = self.lex(string)
         self._consume()
-        return getattr(self, self.top)()
+        return getattr(self, self.entry)()
+#  1}}} # 
             
+
 #  ListParser {{{1 # 
 class ListParser(BaseParser):
 
@@ -42,7 +54,7 @@ class ListParser(BaseParser):
     #          | NUM
     #          | list
 
-    top = 'list'
+    entry = 'list'
 
     def list(self):
         self.match('LPAREN')
@@ -74,27 +86,41 @@ class ListParser(BaseParser):
 #  sexprparser {{{1 # 
 class SexprParser(ListParser):
 
-    """ doesn't need the comma in between elements """
+    """
+    sexpr := '(' elements ')'
+    
+    elements := atom ( atom )*
 
-    # elements := atom ( atom )*
+    atom := ID | NUM
+
+    """
+
+    entry = "sexpr"
+    
+    def sexpr(self):
+        self.match('LPAREN')
+        val = self.elements()
+        self.match('RPAREN')
+        return val
 
     def elements(self):
-        val = self.atom()
-        while self.lookahead.type != 'RPAREN':
-            val = val, self.atom()
+        val = [self.atom()]
+        while self.lookahead and self.lookahead.type != 'RPAREN':
+            val.append(self.atom())
         return val
-        
-    def atom(self):
-        accepted_types = ('ID', 'STR', 'NUM', 'ADD', 'SUB', 'MUL', 'DIV')
 
-        if self.lookahead.type in accepted_types:
-            self.match(*accepted_types)
-            return self.current.value
-        elif self.lookahead.type == 'LPAREN':
-            return self.list()
-        else:
-            raise SyntaxError(f"expecting 'elements' or 'atom'; found {self.lookahead}")
-#  1}}} # 
+    def atom(self):
+        if self.lookahead.type in ('ID', 'NUM'):
+            self.match('ID', 'NUM')
+            if self.current.type == 'NUM':
+                return int(self.current.value)
+            else:
+                return self.current.value
+        elif self.match('LPAREN'):
+            val = self.elements()
+            self.match('RPAREN')
+            return val
+
 #  stringparser {{{1 # 
 class StringParser(BaseParser):
     """ parses everything between quotes """
@@ -133,7 +159,6 @@ class StringParser(BaseParser):
             raise SyntaxError(f"expecting '{self.quote_t}'; found {self.lookahead}")
 #  }}} # 
 
-
 if __name__ == "__main__":
     
     tokens = [
@@ -150,12 +175,14 @@ if __name__ == "__main__":
         r"(?P<WS>\s+)",
     ]
 
-    F = Fexpreffionf(tokens)
+    L = ListParser(tokens)
     S = SexprParser(tokens)
+    
+    list_tests = ["(this, list)"]
+    tests = ["(this list)", "(this list (of lists))", "(this (nested (list of lists)))"]
 
-    test = "(this (list (of lists)))"
+    # for test in list_tests:
+    #     print("L: ", L.parse(list_tests))
 
-    for t in S.lex(test):
-        print(t)
-
-    print(F.parse(test))
+    for test in tests:
+        print("S: ", S.parse(test))
