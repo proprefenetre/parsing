@@ -14,7 +14,7 @@ class ParserBase:
         self.lookahead = None
         
     def _consume(self):
-        self.current, self.lookahead = self.lookahead, next(self.stream, 'EOS')
+        self.current, self.lookahead = self.lookahead, next(self.stream, None)
 
     def match(self, *ttype):
         if self.lookahead.type in ttype:
@@ -137,42 +137,38 @@ class StringParser(ParserBase):
 #  Fexpreffionf {{{1 # 
 class Fexpreffionf(ParserBase):
 
-    # ekfpr := '(' list | atom ')'
+    # ekfpr := '(' atom | list ')' 
     
-    # lift := atom ( atom | lift )*
+    # list := atom (atom)+
 
     # atom := ID
     #       | NUM
     #       | STR
 
+    def match(self, *ttype):
+        if self.lookahead and self.lookahead.type in ttype:
+            self._consume()
+            return True
+        else:
+            raise SyntaxError(f"expecting {ttype}; found {self.lookahead.type}")
+
     top = 'ekfpr'
 
     def ekfpr(self):
-        print(f"{self.current:<30} {self.lookahead:<30}")
         val = []
-        while self.lookahead.type == 'LPAREN':
-            self.match('LPAREN')
-            val.append(self.elements())
+        while self.match('LPAREN'):
+            val.append(self.atom())
             self.match('RPAREN')
-        self.match('RPAREN')
+        # self.match('RPAREN')
         return val
 
-    def elements(self):
-        print("elements()")
-        print(f"\t{self.current} -> {self.lookahead}")
+    def list(self):
+        " one atom followed by another atom or a list "
         val = []
         val.append(self.atom())
-        while self.lookahead.type in ('ID', 'STR', 'NUM', 'LPAREN'):
-            if self.lookahead.type == 'LPAREN':
-                val.append(self.list())
-            else:
-                self._consume()
-                val.append(self.atom())
         return val
         
     def atom(self):
-        print("atom()")
-        print(f"\t{self.current} -> {self.lookahead}")
         if self.lookahead.type in ('ID', 'STR'):
             self.match('ID', 'STR')
             return self.current.value
@@ -180,7 +176,7 @@ class Fexpreffionf(ParserBase):
             self.match('NUM')
             return int(self.current.value)
         elif self.lookahead.type == 'LPAREN':
-            return self.list()
+            return self.ekfpr()
         else:
             raise SyntaxError(f"expecting 'name' or 'list'; found {self.lookahead}")
 #  1}}} # 
@@ -188,22 +184,24 @@ class Fexpreffionf(ParserBase):
 if __name__ == "__main__":
     
     tokens = [
-        r"(?P<STR>\"(\\.|[^\"])*\")",
+        # r"(?P<STR>\"(\\.|[^\"])*\")",
         r"(?P<ID>[a-zA-Z\-]+)",
-        r"(?P<ADD>\+)",
-        r"(?P<SUB>\-)",
-        r"(?P<MUL>\*)",
-        r"(?P<DIV>\\)",
+        # r"(?P<ADD>\+)",
+        # r"(?P<SUB>\-)",
+        # r"(?P<MUL>\*)",
+        # r"(?P<DIV>\\)",
         r"(?P<NUM>\d+)",
-        r"(?P<COMMA>,)",
+        # r"(?P<COMMA>,)",
         r"(?P<LPAREN>\()",
         r"(?P<RPAREN>\))",
         r"(?P<WS>\s+)",
     ]
 
-    L = ListParser(tokens)
+    F = Fexpreffionf(tokens)
 
-    for t in L.lex("(this (list) (is (nested)))"):
+    test = "(this)"
+
+    for t in F.lex(test):
         print(t)
 
-    print(L.parse("(this, (list), (is, (nested)))"))
+    print(F.parse(test))
