@@ -1,7 +1,7 @@
-(replace (Lorem (meroL)))
-(replace (ipsum (muspi)))
-(replace (invidunt (LOLOL)))
-(replace (dolor rolod))
+(Lorem meroL)
+(ipsum muspi)
+(invidunt LOLOL)
+(define (dolor rolod))
 
 Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod
 tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At

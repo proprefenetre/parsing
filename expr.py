@@ -1,24 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from lexer import lex
 from parser import SexprParser
-from pprint import pprint
 
-
-tokens = [
-    r"(?P<COMMENT>\<--)",
-    r"(?P<NUM>[0-9]+)",
-    r"(?P<ID>[a-zA-Z0-9_-]+)",
-    r"(?P<COMMA>,)",
-    r"(?P<SQUOTE>\')",
-    r"(?P<DQUOTE>\")",
-    r"(?P<LPAREN>\()",
-    r"(?P<RPAREN>\))",
-    # r"(?P<NL>\n)",
-    r"(?P<WS>\s+)",]
-
-S = SexprParser(tokens)
 
 class Expr:
 
@@ -28,29 +12,57 @@ class Expr:
 
     def __repr__(self):
         return f"{self.head}: {self.tail}"
-    
 
-ast = []
-with open('test.md', 'r') as tf:
-    for x in tf.readlines():
-        if x.startswith('('):
-            e = Expr(S.parse(x))
-            ast.append(e)
+class AST:
+
+    def __init__(self, parser):
+        self.expressions = {}
+        self.text = ""
+        self.parser = parser
+
+    def process(self, fname):
+        with open(fname, 'r') as tf:
+            for line in tf.readlines():
+                try:
+                    e = self.parser.parse(line)
+                    self.expressions[e[0]] = e[1:][0]
+                except:
+                    self.text += line
+
+if __name__ == "__main__":
+
+    string = """Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+    nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam
+    voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita
+    kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."""
 
 
-repl_table = {}
-for a in ast:
-    if a.head == 'replace':
-        key, val = a.tail
-        repl_table[key] = val
+    tokens = [
+        r"(?P<ID>[a-zA-Z0-9_-]+)",
+        r"(?P<NUM>\d+)",
+        r"(?P<LPAREN>\()",
+        r"(?P<RPAREN>\))",
+        r"(?P<WS>\s+)",]
 
-print(repl_table)
+    S = SexprParser(tokens, ('ID', 'NUM'))
+    ast = AST(S)
 
-string = """Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At
-vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren,
-no sea takimata sanctus est Lorem ipsum dolor sit amet."""
+    ast.process('test.md')
 
-# for k, v in repl_table.items():
-#     string = string.replace(k, v)
-#
-# print(string)
+    print(ast.text)
+    print(ast.expressions)
+
+    # repl_table = {}
+    # for a in ast:
+    #     if a.head == 'replace':
+    #         key, val = a.tail
+    #         repl_table[key] = val
+    #
+    # print(repl_table)
+    #
+    # for k, v in repl_table.items():
+    #     string = string.replace(k, v)
+    #
+    # print(string)
+
+

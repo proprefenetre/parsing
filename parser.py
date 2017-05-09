@@ -2,23 +2,16 @@
 # -*- coding: utf-8 -*-
 
 from lexer import lex
-from collections import Iterable
-from pprint import pprint
-
-def log(func):
-    def wrapped(*args):
-        print(f"in function: {func.__name__}")
-        func(*args)
-    return wrapped
 
 #  BaseParser {{{1 # 
 class BaseParser:
 
-    def __init__(self, tokens):
-        self.lex = lex(tokens)
+    def __init__(self, token_expressions, accepted_tokens):
+        self.lex = lex(token_expressions)
         self.stream = None
         self.current = None
         self.lookahead = None
+        self.accepted_tokens = accepted_tokens
         
     def _consume(self):
         self.current, self.lookahead = self.lookahead, next(self.stream, None)
@@ -71,8 +64,8 @@ class ListParser(BaseParser):
         return val
         
     def atom(self):
-        if self.lookahead.type in ('ID', 'STR'):
-            self.match('ID', 'STR')
+        if self.lookahead.type in self.accepted_tokens:
+            self.match(self.accepted_tokens)
             return self.current.value
         elif self.lookahead.type == 'NUM':
             self.match('NUM')
@@ -110,8 +103,8 @@ class SexprParser(ListParser):
         return val
 
     def atom(self):
-        if self.lookahead.type in ('ID', 'NUM'):
-            self.match('ID', 'NUM')
+        if self.lookahead.type in self.accepted_tokens:
+            self.match(*self.accepted_tokens)
             if self.current.type == 'NUM':
                 return int(self.current.value)
             else:
@@ -161,7 +154,7 @@ class StringParser(BaseParser):
 
 if __name__ == "__main__":
     
-    tokens = [
+    token_exprs = [
         # r"(?P<STR>\"(\\.|[^\"])*\")",
         r"(?P<ID>[a-zA-Z\-]+)",
         # r"(?P<ADD>\+)",
@@ -175,14 +168,11 @@ if __name__ == "__main__":
         r"(?P<WS>\s+)",
     ]
 
-    L = ListParser(tokens)
-    S = SexprParser(tokens)
-    
-    list_tests = ["(this, list)"]
-    tests = ["(this list)", "(this list (of lists))", "(this (nested (list of lists)))"]
+    accepted = ('ID', 'NUM')
 
-    # for test in list_tests:
-    #     print("L: ", L.parse(list_tests))
+    S = SexprParser(token_exprs, accepted)
+    
+    tests = ["(this list)", "(this list (of lists))", "(this (nested (list of lists)))"]
 
     for test in tests:
         print("S: ", S.parse(test))
