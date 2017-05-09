@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from lexer import lex
-from parser import ListParser, SexprParser
+from parser import SexprParser
 from pprint import pprint
 
 
@@ -34,10 +34,7 @@ ast = []
 with open('test.md', 'r') as tf:
     for x in tf.readlines():
         if x.startswith('('):
-            e = L.parse(x)
-            print(e)
-            # e = Expr(S.parse(x))
-            # ast.append(Expr(S.parse(x)))
+            e = Expr(S.parse(x))
             ast.append(e)
 
 

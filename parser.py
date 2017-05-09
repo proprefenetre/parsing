@@ -5,7 +5,7 @@ from lexer import lex
 from collections import Iterable
 from pprint import pprint
 
-class ParserBase:
+class BaseParser:
 
     def __init__(self, tokens):
         self.lex = lex(tokens)
@@ -29,7 +29,7 @@ class ParserBase:
         return getattr(self, self.top)()
             
 #  ListParser {{{1 # 
-class ListParser(ParserBase):
+class ListParser(BaseParser):
 
     """Python-like lists (with parentheses instead of brackets)"""
 
@@ -93,10 +93,10 @@ class SexprParser(ListParser):
         elif self.lookahead.type == 'LPAREN':
             return self.list()
         else:
-            raise SyntaxError(f"expecting 'name' or 'list'; found {self.lookahead}")
+            raise SyntaxError(f"expecting 'elements' or 'atom'; found {self.lookahead}")
 #  1}}} # 
 #  stringparser {{{1 # 
-class StringParser(ParserBase):
+class StringParser(BaseParser):
     """ parses everything between quotes """
 
     top = 'string'
@@ -134,53 +134,6 @@ class StringParser(ParserBase):
 #  }}} # 
 
 
-#  Fexpreffionf {{{1 # 
-class Fexpreffionf(ParserBase):
-
-    # ekfpr := '(' atom | list ')' 
-    
-    # list := atom (atom)+
-
-    # atom := ID
-    #       | NUM
-    #       | STR
-
-    def match(self, *ttype):
-        if self.lookahead and self.lookahead.type in ttype:
-            self._consume()
-            return True
-        else:
-            raise SyntaxError(f"expecting {ttype}; found {self.lookahead.type}")
-
-    top = 'ekfpr'
-
-    def ekfpr(self):
-        val = []
-        while self.match('LPAREN'):
-            val.append(self.atom())
-            self.match('RPAREN')
-        # self.match('RPAREN')
-        return val
-
-    def list(self):
-        " one atom followed by another atom or a list "
-        val = []
-        val.append(self.atom())
-        return val
-        
-    def atom(self):
-        if self.lookahead.type in ('ID', 'STR'):
-            self.match('ID', 'STR')
-            return self.current.value
-        elif self.lookahead.type == 'NUM':
-            self.match('NUM')
-            return int(self.current.value)
-        elif self.lookahead.type == 'LPAREN':
-            return self.ekfpr()
-        else:
-            raise SyntaxError(f"expecting 'name' or 'list'; found {self.lookahead}")
-#  1}}} # 
-
 if __name__ == "__main__":
     
     tokens = [
@@ -198,10 +151,11 @@ if __name__ == "__main__":
     ]
 
     F = Fexpreffionf(tokens)
+    S = SexprParser(tokens)
 
-    test = "(this)"
+    test = "(this (list (of lists)))"
 
-    for t in F.lex(test):
+    for t in S.lex(test):
         print(t)
 
     print(F.parse(test))

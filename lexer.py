@@ -30,6 +30,10 @@ if __name__ == "__main__":
     lexer = lex(tokens)
     test = "lex this"
 
-    pprint([t for t in lexer(test)])
+    l = [t for t in lexer(test)]
+
+    for i in l:
+        if isinstance(i, tuple):
+            print(i)
 
     
