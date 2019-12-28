@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from parser import SexprParser
+import re
 
 
 class Expr:
@@ -24,6 +25,9 @@ class AST:
             for line in tf.readlines():
                 try:
                     e = self.parser.parse(line)
+                    # what's the point of "define" as a keyword?
+                    if e[0] == "define":
+                        self.expressions[e[1][0]] = e[1][1]
                     self.expressions[e[0]] = e[1:][0]
                 except:
                     self.text += line
@@ -31,36 +35,12 @@ class AST:
 
 if __name__ == "__main__":
 
-    string = """Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
-    nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam
-    voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita
-    kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."""
-
-    tokens = [
-        r"(?P<ID>[a-zA-Z0-9_-]+)",
-        r"(?P<NUM>\d+)",
-        r"(?P<LPAREN>\()",
-        r"(?P<RPAREN>\))",
-        r"(?P<WS>\s+)",
-    ]
-
-    S = SexprParser(tokens, ("ID", "NUM"))
+    S = SexprParser()
     ast = AST(S)
 
     ast.process("test.md")
 
-    print(ast.text)
-    print(ast.expressions)
+    for k, v in ast.expressions.items():
+        ast.text = re.sub(f"{k}", f"{v}", ast.text)
 
-    # repl_table = {}
-    # for a in ast:
-    #     if a.head == 'replace':
-    #         key, val = a.tail
-    #         repl_table[key] = val
-    #
-    # print(repl_table)
-    #
-    # for k, v in repl_table.items():
-    #     string = string.replace(k, v)
-    #
-    # print(string)
+    print(ast.text)
